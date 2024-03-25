@@ -1,0 +1,97 @@
+---
+title: "Demo for the version control session, ReproducibiliTea meeting"
+author: "Maria Korochkina"
+date: "Last update: `r format(Sys.time(), '%d %B, %Y')`"
+output:
+  html_document:
+    toc: yes
+    toc_depth: 5
+    toc_float:
+      collapsed: yes
+      smooth_scroll: yes
+    theme: spacelab
+fontsize: 16pt
+editor_options: 
+  chunk_output_type: inline
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+```
+
+```{r, results = "hide"}
+rm(list=ls())
+
+library("openxlsx")
+library("Rmisc")
+library("tidyverse")
+library("ggpubr")
+library("ggdist")
+```
+
+Create some data
+
+```{r}
+subj <- c(rep(1:30, each = 30), rep(1:30, each = 30))
+item <- rep(c(1:30),60)
+cond <- c(rep(rep(0,30),30), rep(rep(1,30),30))
+
+data <- as.data.frame(cbind(subj, cond, item))
+
+rt_cond0 <- c()
+rt_cond1 <- c()
+for (i in 1:60){
+  if (i < 31) {
+    rt <- rnorm(30,550,200)
+    rt_cond0 <- c(rt_cond0, rt)
+  } else {
+    rt <- rnorm(30,620,210)
+    rt_cond1 <- c(rt_cond1, rt)
+  }
+}
+
+data$rt <- round(c(rt_cond0, rt_cond1),0)
+data$cond <- factor(data$cond)
+```
+
+Summary
+
+```{r}
+sum <- data %>% group_by(cond, subj) %>%
+  dplyr:::summarise(RT = mean(rt))
+(rt <- summarySE(sum, measurevar = "RT", 
+                       groupvars = c("cond"), 
+                       na.rm = FALSE, conf.interval = .95))
+```
+
+Plot
+
+```{r}
+data %>%
+  ggplot(aes(x = cond, y = rt, fill = cond)) +
+   stat_slab(adjust = 0.5, alpha = .5, scale = 0.6, 
+             position = position_nudge(x = 0.04)) +
+  geom_boxplot(width = .1, position = position_nudge(x = -0.06), 
+               outlier.shape = NA, alpha = .5, color = "black") +
+  gghalves::geom_half_point(side = "l", range_scale = .13, alpha = .5) +
+  geom_point(data = rt, aes(x = cond, 
+                            y = RT), 
+             size = 2, shape = 21,
+             position = position_nudge(x = 0.04)) +
+  geom_errorbar(data = rt, aes(x = cond, 
+                              y = RT, 
+                            ymin = RT-2*se, ymax = RT+2*se), 
+              size = 1, width = .03, 
+              position = position_nudge(x = 0.04)) +
+  theme_classic() +
+  labs(x = "Condition",
+    y = "Response times (ms)") + guides(fill = F) + coord_flip()
+```
+Save data
+
+```{r}
+write.table(data, "data.csv", sep = ",", 
+            row.names = F, 
+            col.names = T, quote = FALSE)
+```
+
