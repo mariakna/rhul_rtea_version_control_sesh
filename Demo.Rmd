@@ -95,3 +95,4 @@ write.table(data, "data.csv", sep = ",",
             col.names = T, quote = FALSE)
 ```
 
+Read more [here](https://happygitwithr.com/rstudio-git-github.html)!
